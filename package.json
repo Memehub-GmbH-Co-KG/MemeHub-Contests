@@ -1,0 +1,15 @@
+{
+  "name": "memehub-contests",
+  "version": "1.0.0",
+  "description": "Manages contests for the MemeHub",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "leifb",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^3.5.9",
+    "redis-request-broker": "^1.11.1"
+  }
+}
