@@ -9,7 +9,9 @@
   "author": "leifb",
   "license": "ISC",
   "dependencies": {
+    "docker-names": "^1.1.1",
     "mongodb": "^3.5.9",
-    "redis-request-broker": "^1.11.1"
+    "redis-request-broker": "^1.11.1",
+    "serialize-error": "^7.0.1"
   }
 }
