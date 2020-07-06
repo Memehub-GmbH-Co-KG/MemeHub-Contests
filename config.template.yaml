@@ -1,12 +1,17 @@
 rrb:
   channels:
     logging: logging:log
+    contestStarted: "events:contest-started"
+    contestStopped: "events:contest-started"
+    contestCreated: "events:contest-created"
+    contestDeleted: "events:contest-deleted"
   queues:
     contestsCreate: "contests:create"
     contestsStart: "contests:start"
     contestsStop: "contests:stop"
     contestsDelete: "contests:delete"
     contestsList: "contests:list"
+    contestsTop: "contests:top"
 
 redis: # The redis config to use
   prefix: "mh:test:"
@@ -16,5 +21,6 @@ redis: # The redis config to use
 mongodb:
   connectionString: <>
   database: test
-  collection: contests
+  collectionContests: contests
+  collectionMemes: memes
     
