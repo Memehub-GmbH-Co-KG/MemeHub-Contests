@@ -145,6 +145,7 @@ module.exports.build = async function build(config) {
             }
             
             await publishers.started.publish(id);
+            await log('notice', `Contest '${id}' has been started.`);
         }
         catch (error) {
             log('warning', 'Failed to start contest in mongodb.', { error: serializeError(error), contest: id});
@@ -167,6 +168,7 @@ module.exports.build = async function build(config) {
             }
 
             await publishers.started.publish(id);
+            await log('notice', `Contest '${id}' has been stopped.`);
         }
         catch (error) {
             log('warning', 'Failed to stop contest in mongodb.', { error: serializeError(error), contest: id});
