@@ -7,6 +7,10 @@ Contest management for the MemeHub
   - `cp config.template.yaml config.yaml`
   - Configure in `config.yaml`
   
- # Running
+# Running
  
  `npm run start`
+
+# State
+
+The state of current contests is stored in the mongodb

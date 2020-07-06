@@ -1,2 +1,20 @@
 rrb:
-  channelLogging: logging:log
+  channels:
+    logging: logging:log
+  queues:
+    contestsCreate: "contests:create"
+    contestsStart: "contests:start"
+    contestsStop: "contests:stop"
+    contestsDelete: "contests:delete"
+    contestsList: "contests:list"
+
+redis: # The redis config to use
+  prefix: "mh:test:"
+  port: 6379
+  host: 127.0.0.1
+
+mongodb:
+  connectionString: <>
+  database: test
+  collection: contests
+    

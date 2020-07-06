@@ -2,20 +2,20 @@ const { Publisher } = require('redis-request-broker');
 const i = require('./instance');
 let client;
 
-async function start(config) {
-    const c = new Publisher(config.rrb.channelLogging);
+module.exports.start = async function start(config) {
+    const c = new Publisher(config.rrb.channels.logging);
     await c.connect();
     client = c;
 }
 
-async function stop() {
+module.exports.stop = async function stop() {
     const c = client;
     client = undefined;
     if (c)
         await c.disconnect().catch(e => console.log('Failed to stop logger:', e));
 }
 
-async function log(level, title, data, component = i.component, instance = i.instance) {
+module.exports.log = async function log(level, title, data, component = i.component, instance = i.instance) {
     try {
         if (!client)
             return console.log('Cannot send log, as not started jet:', { level, title, data, component, instance });
@@ -28,7 +28,3 @@ async function log(level, title, data, component = i.component, instance = i.ins
         console.log('Failed to send log:', { level, title, data, component, instance });
     }
 }
-
-module.exports.log = log;
-module.exports.start = start;
-module.exports.stop = stop;
