@@ -6,7 +6,7 @@ const { MongoClient } = require('mongodb');
 
 module.exports.build = async function build(config) {
 
-    const mongoClient = new MongoClient(config.mongodb.connectionString, { useNewUrlParser: true, useUnifiedTopology: true });
+    const mongoClient = new MongoClient(config.mongodb.connection, { useNewUrlParser: true, useUnifiedTopology: true });
     const workers = {};
     const publishers = {};
     /** @type {import('mongodb').Collection} */
@@ -27,30 +27,32 @@ module.exports.build = async function build(config) {
             // Connect to mongodb
             await mongoClient.connect();
             const db = mongoClient.db(config.mongodb.database);
-            collectionContests = await db.createCollection(config.mongodb.collectionContests);
-            collectionMemes = await db.createCollection(config.mongodb.collectionMemes);
+            collectionContests = await db.collection(config.mongodb.collections.contests);
+            collectionMemes = await db.collection(config.mongodb.collections.memes);
 
             // Start worker
-            workers.create = new Worker(config.rrb.queues.contestsCreate, createContest);
-            workers.list = new Worker(config.rrb.queues.contestsList, list);
-            workers.delete = new Worker(config.rrb.queues.contestsDelete, deleteContest);
-            workers.start = new Worker(config.rrb.queues.contestsStart, startContest);
-            workers.stop = new Worker(config.rrb.queues.contestsStop, stopContest);
-            workers.top = new Worker(config.rrb.queues.contestsTop, contestGetTop);
-            publishers.started = new Publisher(config.rrb.channels.contestStarted);
-            publishers.stopped = new Publisher(config.rrb.channels.contestStopped);
-            publishers.created = new Publisher(config.rrb.channels.contestCreated);
-            publishers.deleted = new Publisher(config.rrb.channels.contestDeleted);
-            await workers.create.listen();
-            await workers.list.listen();
-            await workers.delete.listen();
-            await workers.start.listen();
-            await workers.stop.listen();
-            await workers.top.listen();
-            await publishers.started.connect();
-            await publishers.stopped.connect();
-            await publishers.created.connect();
-            await publishers.deleted.connect();
+            workers.create = new Worker(config.rrb.channels.contests.create, createContest);
+            workers.list = new Worker(config.rrb.channels.contests.list, list);
+            workers.delete = new Worker(config.rrb.channels.contests.delete, deleteContest);
+            workers.start = new Worker(config.rrb.channels.contests.start, startContest);
+            workers.stop = new Worker(config.rrb.channels.contests.stop, stopContest);
+            workers.top = new Worker(config.rrb.channels.contests.top, contestGetTop);
+            publishers.started = new Publisher(config.rrb.channels.contests.started);
+            publishers.stopped = new Publisher(config.rrb.channels.contests.stopped);
+            publishers.created = new Publisher(config.rrb.channels.contests.created);
+            publishers.deleted = new Publisher(config.rrb.channels.contests.deleted);
+            await Promise.all([
+                workers.create.listen(),
+                workers.list.listen(),
+                workers.delete.listen(),
+                workers.start.listen(),
+                workers.stop.listen(),
+                workers.top.listen(),
+                publishers.started.connect(),
+                publishers.stopped.connect(),
+                publishers.created.connect(),
+                publishers.deleted.connect()
+            ]);
         }
         catch (error) {
             await log('error', 'Failed to init contests', serializeError(error));
@@ -69,7 +71,7 @@ module.exports.build = async function build(config) {
             for (const p of Object.values(publishers)) {
                 await p.disconnect().catch(e => log.log('warning', 'Cannot stop publisher', serializeError(e)));
             }
-    
+
             // Disconnect from mongodb
             await mongoClient.close();
         }
@@ -78,14 +80,14 @@ module.exports.build = async function build(config) {
         }
     }
 
-    async function createContest({id, tag, emoji}) {
+    async function createContest({ id, tag, emoji }) {
         try {
-            const result = await collectionContests.insertOne({_id: id, tag, emoji, running: false});
+            const result = await collectionContests.insertOne({ _id: id, tag, emoji, running: false });
             if (!result.result.ok) {
                 log('info', 'Cannot create contest: MongoDB response is not ok.', { result, id });
                 return false;
             }
-            
+
             if (result.insertedCount !== 1) {
                 log('info', 'Response missmatch while creating contest: insertedCount is not 1.', { result, id });
                 return false;
@@ -94,7 +96,7 @@ module.exports.build = async function build(config) {
             await publishers.created.publish({ id, tag, emoji, running: false });
         }
         catch (error) {
-            log('warning', 'Failed to create contest object in mongodb.', { error: serializeError(error), contest: { id, tag, emoji }});
+            log('warning', 'Failed to create contest object in mongodb.', { error: serializeError(error), contest: { id, tag, emoji } });
             return false;
         }
         return true;
@@ -104,9 +106,9 @@ module.exports.build = async function build(config) {
         const cursor = onlyRunning
             ? await collectionContests.find({ running: true })
             : await collectionContests.find();
-        
+
         const contests = await cursor.toArray();
-        return contests.map(c => ({ id: c._id, ...c}));
+        return contests.map(c => ({ id: c._id, ...c }));
     }
 
     async function deleteContest(id) {
@@ -125,7 +127,7 @@ module.exports.build = async function build(config) {
             await publishers.deleted.publish(id);
         }
         catch (error) {
-            log('warning', 'Failed to delete contest object in mongodb.', { error: serializeError(error), contest: id});
+            log('warning', 'Failed to delete contest object in mongodb.', { error: serializeError(error), contest: id });
             return false;
         }
         return true;
@@ -138,17 +140,17 @@ module.exports.build = async function build(config) {
                 log('info', 'Cannot start contest: MongoDB response is not ok.', { result, id });
                 return false;
             }
-            
+
             if (result.modifiedCount !== 1) {
                 log('info', 'Response missmatch while starting contest: modifiedCount is not 1.', { result, id });
                 return false;
             }
-            
+
             await publishers.started.publish(id);
             await log('notice', `Contest '${id}' has been started.`);
         }
         catch (error) {
-            log('warning', 'Failed to start contest in mongodb.', { error: serializeError(error), contest: id});
+            log('warning', 'Failed to start contest in mongodb.', { error: serializeError(error), contest: id });
             return false;
         }
         return true;
@@ -171,7 +173,7 @@ module.exports.build = async function build(config) {
             await log('notice', `Contest '${id}' has been stopped.`);
         }
         catch (error) {
-            log('warning', 'Failed to stop contest in mongodb.', { error: serializeError(error), contest: id});
+            log('warning', 'Failed to stop contest in mongodb.', { error: serializeError(error), contest: id });
             return false;
         }
         return true;
@@ -182,8 +184,8 @@ module.exports.build = async function build(config) {
 
         if (!contest._id)
             throw new Error('Contest does not exist');
-        
-        const cursor = await collectionMemes.find({ contests: contest.tag }, { 
+
+        const cursor = await collectionMemes.find({ contests: contest.tag }, {
             sort: {
                 [`votes.${vote_type}`]: -1
             },
@@ -191,8 +193,8 @@ module.exports.build = async function build(config) {
             projection: {
                 _id: 1
             }
-         });
-        
+        });
+
         const memes = await cursor.toArray();
         return memes.map(m => m._id);
     }
